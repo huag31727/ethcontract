@@ -1,0 +1,49 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+contract StakingContract {
+    // Адрес, который ставит
+    address public staker;
+    // Количество ETH, внесенное для ставки
+    uint256 public stakingAmount;
+    // Время начала ставки
+    uint256 public startTime;
+    // Время окончания ставки
+    uint256 public endTime;
+    // Флаг для определения, была ли ставка выполнена
+    bool public isStakingCompleted;
+
+    // Событие, которое будет вызвано при ставке
+    event Staking(address staker, uint256 amount, uint256 startTime, uint256 endTime);
+
+    // Событие, которое будет вызвано при завершении ставки
+    event StakingCompleted(address staker, uint256 amount);
+
+    // Конструктор контракта, устанавливающий параметры ставки
+    constructor(uint256 _stakingPeriod) {
+        staker = msg.sender;
+        startTime = block.timestamp;
+        endTime = startTime + _stakingPeriod;
+    }
+
+    // Функция для внесения ставки
+    function stake() external payable {
+        require(msg.sender == staker, "Only the staker can call this function");
+        require(msg.value > 0, "Staking amount should be greater than 0");
+        require(!isStakingCompleted, "Staking has already been completed");
+
+        stakingAmount += msg.value;
+        emit Staking(staker, msg.value, startTime, endTime);
+    }
+
+    // Функция для завершения ставки и возврата средств
+    function withdraw() external {
+        require(msg.sender == staker, "Only the staker can call this function");
+        require(block.timestamp >= endTime, "Staking period has not ended yet");
+        require(!isStakingCompleted, "Staking has already been completed");
+
+        payable(staker).transfer(stakingAmount);
+        isStakingCompleted = true;
+        emit StakingCompleted(staker, stakingAmount);
+    }
+}
